@@ -10,7 +10,7 @@
     "require": {},
     "autoload": {
         "psr-4": {
-            "lnch\\laravel-toolkit\\": "src"
+            "Lnch\\LaravelToolkit\\": "src"
         }
     },
     "require-dev": {
