@@ -2,9 +2,11 @@
 
 namespace Lnch\LaravelToolkit\Repositories;
 
+use Exception;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
+use Lnch\LaravelToolkit\Repositories\Exceptions\InvalidModelException;
 use Lnch\LaravelToolkit\Repositories\Exceptions\ModelNotDefinedException;
 
 class BaseEloquentRepository
@@ -15,10 +17,13 @@ class BaseEloquentRepository
      */
     protected $model;
 
+    private $activeModelInstance;
+
     public function __construct()
     {
         if (!$this->model) {
-            throw new ModelNotDefinedException('The repository class is missing an Eloquent model.');
+            throw new ModelNotDefinedException("The '".get_class($this)."' repository class
+                is missing an Eloquent model.");
         }
     }
 
@@ -29,7 +34,10 @@ class BaseEloquentRepository
      */
     protected function make(): Model
     {
-        return new $this->model;
+        $model = new $this->model;
+        $this->modelPk = $model->getKeyName();
+
+        return $model;
     }
 
     /**
@@ -39,7 +47,17 @@ class BaseEloquentRepository
      */
     protected function query(): Builder
     {
-        return $this->make()->newQuery();
+        $query = $this->make()->newQuery();
+
+        if ($this->activeModelInstance) {
+            dd($this->activeModelInstance);
+            $query->where(
+                $this->activeModelInstance->getKeyName(),
+                $this->activeModelInstance->getKey()
+            );
+        }
+
+        return $query;
     }
 
     /**
@@ -52,7 +70,14 @@ class BaseEloquentRepository
         return $this->query()->get();
     }
 
-    // getOne()
+    public function getOne($model = null)
+    {
+        if ($model) {
+            $this->loadModel($model);
+        }
+
+        return $this->query()->first();
+    }
 
     // create()
 
@@ -67,4 +92,24 @@ class BaseEloquentRepository
     // findOne()
 
     // findAll()
+
+    /**
+     * Loads an active instance of the given model for use in queries.
+     *
+     * Takes either an instance of the repository model, or a value for the
+     * model's primary key.
+     *
+     * @param $model
+     * @throws InvalidModelException
+     */
+    private function loadModel($model): void
+    {
+        if ($model instanceof Model && !$model instanceof $this->model) {
+            throw new InvalidModelException();
+        }
+
+        $this->activeModelInstance = $model instanceof Model
+            ? $model
+            : $this->model::find($model)->first();
+    }
 }
