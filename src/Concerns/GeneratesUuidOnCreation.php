@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Concerns;
+namespace Lnch\LaravelToolkit\Concerns;
 
 use Illuminate\Support\Str;
 
